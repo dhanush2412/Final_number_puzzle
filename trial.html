@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Number Match — Deterministic Engine</title>
+    <title>Number Match - Deterministic Engine</title>
     <style>
         * {
             margin: 0;
@@ -13,89 +13,205 @@
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #0f0f13;
-            color: #e0e0e0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #E3ECF7;
+            color: #2C3E50;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 20px
+            user-select: none;
+            -webkit-user-select: none;
+            padding: 10px 12px;
+        }
+
+        .top-header {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2px 0 10px;
+        }
+
+        .home-btn {
+            width: 46px;
+            height: 46px;
+            border: none;
+            background: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 0;
+            box-shadow: none;
         }
 
         h1 {
-            font-size: 1.4rem;
-            margin-bottom: 4px;
-            color: #a0a0ff;
-            letter-spacing: 1px
+            font-size: 2.0rem;
+            font-weight: 800;
+            color: #2B4867;
+            letter-spacing: .2px;
+            margin: 0
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: none;
+            padding: 0;
+        }
+
+        #btn-restart.icon-btn {
+            background: #d2d1cf;
+            color: #4f5b66;
+        }
+
+        #btn-hint.icon-btn {
+            background: #f2cc2f;
+            color: #fff;
         }
 
         #hud {
+            width: 100%;
+            max-width: 420px;
             display: flex;
-            gap: 24px;
-            margin: 8px 0 12px;
-            font-size: .85rem;
-            color: #888;
-            flex-wrap: wrap;
+            gap: 14px;
+            margin: 0 0 10px;
             justify-content: center
         }
 
-        #hud span {
-            color: #ccc
+        .stat-card {
+            flex: 1;
+            background: #B9C9D8;
+            border: 3px solid #A5BBD0;
+            border-radius: 18px;
+            padding: 10px 8px 12px;
+            text-align: center;
+            min-height: 92px;
+        }
+
+        .stat-label {
+            font-size: 2rem;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-title {
+            display: block;
+            font-size: 2rem;
+            color: #4f6b86;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            display: block;
+            color: #2B4867;
+            font-size: 2.6rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        #meta-hidden {
+            display: none;
+        }
+
+
+        #info-box {
+            width: 100%;
+            max-width: 420px;
+            min-height: 0;
+            margin: 0 0 8px;
+            font-size: .86rem;
+            color: #5D6E82;
+            text-align: center;
+        }
+
+        #hud {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            gap: 10px;
+            margin: 0 0 10px;
+            justify-content: center;
+            align-items: center;
+            font-size: .9rem;
+            color: #4E6075;
+            flex-wrap: wrap;
+        }
+
+        #hud span b {
+            color: #2B4867;
         }
 
         #board-wrap {
+            width: 100%;
+            max-width: 420px;
             position: relative;
             overflow-y: auto;
-            max-height: 70vh;
-            border: 1px solid #2a2a3a;
+            max-height: 62vh;
+            border: 2px solid #C0CFDF;
             border-radius: 8px;
-            padding: 4px;
-            background: #16161e
+            background: #F0F4FA;
+            padding: 0
         }
 
         #board {
             display: grid;
             grid-template-columns: repeat(9, 1fr);
-            gap: 3px;
-            min-width: 340px
+            gap: 0
         }
 
         .cell {
-            width: 38px;
-            height: 38px;
+            aspect-ratio: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
+            font-size: clamp(1.05rem, 4.2vw, 1.5rem);
             font-weight: 700;
-            border-radius: 6px;
             cursor: pointer;
+            border: .5px solid #D0DAE6;
+            background: #fff;
+            color: #2C3E50;
             transition: background .12s, border-color .12s, box-shadow .12s;
             user-select: none
         }
 
         .cell.num {
-            background: #1e1e2e;
-            color: #d0d0e8;
-            border: 2px solid #2a2a3a
+            background: #fff;
+            color: #B3BCC8;
+            border: .5px solid #D0DAE6
         }
 
         .cell.num:hover {
-            background: #2a2a4a;
-            border-color: #5a5aaa
+            background: #EEF4FB;
+            border-color: #9FC2E8
         }
 
         .cell.empty {
-            background: transparent;
-            border: 2px solid transparent;
-            cursor: default
+            background: #fff;
+            color: transparent;
+            cursor: default;
+            border: .5px solid #E4EAF2
         }
 
         .cell.selected {
-            background: #2e2e6a;
-            border-color: #7a7aff;
-            box-shadow: 0 0 10px #5a5aff44
+            background: #BBDEFB;
+            border-color: #42A5F5;
+            box-shadow: 0 0 0 1px #42A5F5 inset;
+            z-index: 1
         }
 
         .cell.matched {
@@ -110,18 +226,6 @@
             animation: pulse .6s ease-in-out 2
         }
 
-        .cell.corruption {
-            background: #5a1212;
-            border-color: #ff4d4d;
-            color: #ffdcdc;
-            box-shadow: 0 0 12px #ff2a2a66
-        }
-
-        .cell.corruption:hover {
-            background: #6a1d1d;
-            border-color: #ff7a7a
-        }
-
         @keyframes pop {
             0% {
                 transform: scale(1);
@@ -129,12 +233,12 @@
             }
 
             50% {
-                transform: scale(1.25);
-                opacity: .7
+                transform: scale(1.15);
+                opacity: .5
             }
 
             100% {
-                transform: scale(0);
+                transform: scale(.85);
                 opacity: 0
             }
         }
@@ -159,18 +263,20 @@
 
             0%,
             100% {
-                box-shadow: 0 0 4px #ffaa0044
+                box-shadow: 0 0 4px rgba(255, 170, 0, .2)
             }
 
             50% {
-                box-shadow: 0 0 16px #ffaa00aa;
-                border-color: #ffaa00
+                box-shadow: 0 0 14px rgba(255, 170, 0, .7);
+                border-color: #FFA000
             }
         }
 
         #controls {
+            width: 100%;
+            max-width: 420px;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             margin-top: 12px;
             align-items: center;
             flex-wrap: wrap;
@@ -178,56 +284,66 @@
         }
 
         button {
-            padding: 8px 16px;
-            border: 1px solid #3a3a5a;
-            border-radius: 6px;
-            background: #1e1e2e;
-            color: #c0c0e0;
+            padding: 10px 14px;
+            border: 1px solid #B8CBE0;
+            border-radius: 10px;
+            background: #D6E4F0;
+            color: #2C3E50;
             font-size: .82rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: background .2s
+            transition: background .2s, transform .15s, box-shadow .15s
         }
 
         button:hover:not(:disabled) {
-            background: #2a2a4a
+            background: #C9DCF0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, .08)
         }
 
         button:disabled {
-            opacity: .3;
+            opacity: .45;
             cursor: not-allowed
         }
 
         button.shuffle-btn {
-            background: linear-gradient(135deg, #2a2a4a 0%, #3a3a5a 100%);
-            border: 1px solid #5a5a7a;
-            position: relative;
-            overflow: hidden
+            background: linear-gradient(145deg, #5B9BD5, #3A7BD5);
+            border-color: #3A7BD5;
+            color: #fff
         }
 
         button.shuffle-btn:hover:not(:disabled) {
-            background: linear-gradient(135deg, #3a3a6a 0%, #4a4a7a 100%);
-            box-shadow: 0 0 12px #6a6aaa44
+            background: linear-gradient(145deg, #6AA8DF, #4A89DD)
         }
 
         button.shuffle-btn::before {
-            content: '🎲';
-            margin-right: 4px
+            content: '';
+            margin-right: 0
+        }
+
+        label[for="level-select"] {
+            font-size: .82rem;
+            color: #5A6B7C;
+            font-weight: 700
         }
 
         select {
-            padding: 8px 10px;
-            border: 1px solid #3a3a5a;
-            border-radius: 6px;
-            background: #1e1e2e;
-            color: #c0c0e0;
+            padding: 10px 12px;
+            border: 1px solid #B8CBE0;
+            border-radius: 10px;
+            background: #fff;
+            color: #2C3E50;
             font-size: .82rem;
+            font-weight: 700;
         }
 
         #msg {
-            margin-top: 10px;
-            font-size: .85rem;
-            min-height: 1.4em;
-            color: #8a8aaa;
+            width: 100%;
+            max-width: 420px;
+            margin-top: 8px;
+            font-size: .78rem;
+            min-height: 1.3em;
+            color: #6B7C93;
             text-align: center
         }
 
@@ -235,7 +351,7 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: #000b;
+            background: rgba(30, 46, 70, .45);
             z-index: 10;
             flex-direction: column;
             align-items: center;
@@ -247,55 +363,39 @@
         }
 
         #level-complete div {
-            background: #1a1a2e;
-            padding: 32px 48px;
-            border-radius: 12px;
+            background: #F7FAFF;
+            padding: 26px 30px;
+            border-radius: 14px;
             text-align: center;
-            border: 1px solid #3a3a6a
+            border: 2px solid #C0CFDF;
+            width: min(92vw, 420px)
         }
 
         #level-complete h2 {
-            color: #8a8aff;
+            color: #2C3E50;
             margin-bottom: 8px
         }
 
         #level-complete p {
-            color: #aaa;
-            margin-bottom: 16px
-        }
-
-        #info-box {
-            background: #1a1a2a;
-            border: 1px solid #3a3a5a;
-            border-radius: 6px;
-            padding: 8px 16px;
-            margin: 8px 0;
-            font-size: .75rem;
-            color: #aaa;
-            max-width: 500px;
-            text-align: center
-        }
-
-        #info-box .corrupt-label {
-            color: #aaa;
-            font-weight: 700
+            color: #6B7C93;
+            margin-bottom: 14px
         }
     </style>
 </head>
 
 <body>
     <h1>NUMBER MATCH</h1>
-    <div id="info-box">
-        <strong>🧩 Layered Puzzle:</strong> Solve blocking pairs to unlock deeper pairs!
-        <br><span style="font-size: .7rem"><span class="corrupt-label">Corruptions</span> need rescue via Add Row | L5+:
-            Rescue hidden behind level-scaled decoy rows | Smart rows analyze & help | Empty rows collapse</span>
-    </div>
+    <div id="info-box"></div>
     <div id="hud">
-        Level <span id="h-level">1</span> &nbsp;|&nbsp;
-        Moves <span id="h-moves">0</span> &nbsp;|&nbsp;
-        Add-Rows <span id="h-adds">6</span> &nbsp;|&nbsp;
-        Corruptions <span id="h-corrupt">0</span> &nbsp;|&nbsp;
-        Remaining <span id="h-remain">0</span>
+        <span>Level <b id="h-level">1</b></span>
+        <span>|</span>
+        <span>Moves <b id="h-moves">0</b></span>
+        <span>|</span>
+        <span>Add-Rows <b id="h-adds">6</b></span>
+        <span>|</span>
+        <span>Corruptions <b id="h-corrupt">0</b></span>
+        <span>|</span>
+        <span>Remaining <b id="h-remain">0</b></span>
     </div>
     <div id="board-wrap">
         <div id="board"></div>
@@ -360,7 +460,7 @@
         const COLS = 9;
 
         /* ============================================================
-           1. CONFIG TABLE — Sawtooth Difficulty (Levels 1-10)
+           1. CONFIG TABLE â€” Sawtooth Difficulty (Levels 1-10)
            adjacentRatio : fraction of pairs placed side-by-side
            minSep/maxSep : swap distance range for separated pairs
            rows          : initial row count
@@ -379,7 +479,7 @@
         };
 
         /* ============================================================
-           2. SEEDED PRNG — Mulberry32 (replaces Math.random entirely)
+           2. SEEDED PRNG â€” Mulberry32 (replaces Math.random entirely)
            ============================================================ */
         function mulberry32(seed) {
             return function () {
@@ -412,7 +512,7 @@
         };
 
         /* ============================================================
-           4. PAIR LOGIC — same number OR sum-to-10
+           4. PAIR LOGIC â€” same number OR sum-to-10
            ============================================================ */
         function isPair(a, b) {
             if (a < 1 || a > 9 || b < 1 || b > 9) return false;
@@ -422,11 +522,11 @@
         /* ============================================================
            5. PATH VALIDATION (Number Match rules)
            Two non-zero cells (i, j) can match if isPair AND:
-             (a) 2D-adjacent (H/V/D — row/col each differ by ≤1), OR
+             (a) 2D-adjacent (H/V/D â€” row/col each differ by â‰¤1), OR
              (b) All cells between them in the flat linear sequence are 0
                  (forward direction), OR
              (c) All cells in the wrap-around direction are 0
-                 (from hi→end, then start→lo).
+                 (from hiâ†’end, then startâ†’lo).
            ============================================================ */
         function areAdjacent(i, j) {
             const r1 = (i / COLS) | 0, c1 = i % COLS;
@@ -440,7 +540,7 @@
             if (a === 0 || b === 0) return false;
             if (!isPair(a, b)) return false;
 
-            // (a) 2D adjacency (H, V, D — one step)
+            // (a) 2D adjacency (H, V, D â€” one step)
             if (areAdjacent(i, j)) return true;
 
             const c1 = i % COLS, c2 = j % COLS;
@@ -522,7 +622,7 @@
         }
 
         /* ============================================================
-           7. GREEDY SOLVER — O(n³), no backtracking
+           7. GREEDY SOLVER â€” O(nÂ³), no backtracking
            Always picks the closest valid match. Returns true if
            the board can be fully cleared with this strategy.
            ============================================================ */
@@ -850,7 +950,7 @@
         }
 
         /* ============================================================
-           9. STRAGGLER DETECTOR — finds "loner" numbers whose
+           9. STRAGGLER DETECTOR â€” finds "loner" numbers whose
            pair-partner has been entirely cleared from the board
            ============================================================ */
         function calculateStragglers() {
@@ -1068,7 +1168,7 @@
             }
         }
         /* ============================================================
-           ROW COLLAPSE — Remove completely empty rows and shift up
+           ROW COLLAPSE â€” Remove completely empty rows and shift up
            ============================================================ */
         function collapseEmptyRows() {
             const rowCount = Math.ceil(G.grid.length / COLS);
@@ -1101,7 +1201,7 @@
         }
 
         /* ============================================================
-           11. SHUFFLE MECHANIC (Level 3+) — 50/50 Risk/Reward
+           11. SHUFFLE MECHANIC (Level 3+) â€” 50/50 Risk/Reward
            Progressive limit: L3=3, L4=4, L5=5, etc.
            ============================================================ */
         function cloneCorruptions(corruptions) {
@@ -1447,7 +1547,7 @@
 
             if (isGoodShuffle) {
                 // GOOD SHUFFLE: Group pairs closer together
-                setMsg('🍀 Lucky! Pairs moving closer together...');
+                setMsg('Lucky! Pairs moving closer together...');
 
                 // Build a new arrangement that groups pairs
                 const newValues = [];
@@ -1516,7 +1616,7 @@
                 }
             } else {
                 // BAD SHUFFLE: Scatter pairs far apart
-                setMsg('💀 Unlucky! Pairs scattered apart...');
+                setMsg('Unlucky! Pairs scattered apart...');
 
                 // Fisher-Yates shuffle with bias toward distance
                 for (let i = values.length - 1; i > 0; i--) {
@@ -1542,13 +1642,13 @@
             setTimeout(() => {
                 G.animating = false;
                 const moveCount = findAllMoves(G.grid).length;
-                setMsg((isGoodShuffle ? '✨ Good shuffle! ' : '⚠️ Bad shuffle! ') +
+                setMsg((isGoodShuffle ? 'Good shuffle! ' : 'Bad shuffle! ') +
                     moveCount + ' moves available. Shuffles left: ' + G.shufflesLeft);
             }, 500);
         }
 
         /* ============================================================
-           12. GAME ACTIONS — select, match, hint
+           12. GAME ACTIONS â€” select, match, hint
            ============================================================ */
         function selectCell(index) {
             if (G.animating) return;
@@ -1611,7 +1711,7 @@
                     checkWin();
                 }, 280);
             } else {
-                // Invalid match — shake second cell
+                // Invalid match â€” shake second cell
                 const cells = document.querySelectorAll('.cell');
                 if (cells[index]) cells[index].classList.add('invalid');
                 setMsg('Not a valid match');
@@ -1659,10 +1759,10 @@
             if (remaining <= 1) {
                 const addRowsUsed = (G.level >= 5 ? (10 + G.level * 2) : (6 + G.level)) - G.addRowsLeft;
                 const shuffleText = G.level >= 2 && G.shufflesUsed > 0 ? ', ' + G.shufflesUsed + ' shuffles' : '';
-                const perfection = remaining === 0 ? ' 🌟 Perfect!' : '';
+                const perfection = remaining === 0 ? ' Perfect!' : '';
                 const corruptionText = G.corruptions.length > 0 ? G.corruptions.length + ' corruptions rescued, ' : '';
                 document.getElementById('lc-text').textContent =
-                    '🎉 Level ' + G.level + ' cleared!' + perfection + ' ' + G.moves + ' moves, ' +
+                    'Level ' + G.level + ' cleared!' + perfection + ' ' + G.moves + ' moves, ' +
                     corruptionText + addRowsUsed + ' rows added' + shuffleText + '.';
                 document.getElementById('level-complete').classList.add('show');
             }
