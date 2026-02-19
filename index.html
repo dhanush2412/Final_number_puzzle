@@ -23,25 +23,28 @@
         gtag('config', 'G-QLP10NJJMC', { debug_mode: window.__gaDebugMode });
     </script>
     <!-- Meta Pixel Code -->
-    <script>
-        !function (f, b, e, v, n, t, s) {
-            if (f.fbq) return; n = f.fbq = function () {
-                n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-            };
-            if (!f._fbq) f._fbq = n;
-            n.push = n;
-            n.loaded = true;
-            n.version = '2.0';
-            n.queue = [];
-            t = b.createElement(e);
-            t.async = true;
-            t.src = v;
-            s = b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t, s);
-        }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', 'YOUR_META_PIXEL_ID');
-        fbq('track', 'PageView');
-    </script>
+     <script>
+    !function (f, b, e, v, n, t, s) {
+        if (f.fbq) return; n = f.fbq = function () {
+            n.callMethod ?
+                n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+        };
+        if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+        n.queue = []; t = b.createElement(e); t.async = !0;
+        t.src = v; s = b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t, s)
+    }(window, document, 'script',
+        '<https://connect.facebook.net/en_US/fbevents.js>');
+    fbq('init', '1120927733548336');
+    fbq('track', 'PageView');
+</script>
+<noscript>
+    <img height="1" width="1" style="display:none"
+        src="<https://www.facebook.com/tr?id=1120927733548336&ev=PageView&noscript=1>" />
+</noscript>
+<!-- End Meta Pixel Code -->
+
+
     <style>
         * {
             margin: 0;
@@ -552,6 +555,147 @@
             totalRowsAdded: 0,   // Track total rows added for quality improvement
             firstLevelTracked: false
         };
+
+        const Analytics = {
+            playerId: null,
+            sessionId: null,
+            sessionStartedAt: 0,
+            sessionStarted: false,
+            sessionEnded: false,
+            attempt: null
+        };
+
+        function generateAnalyticsId(prefix) {
+            return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+        }
+
+        function getOrCreatePlayerId() {
+            const key = 'xorstack_player_id';
+            try {
+                const existing = localStorage.getItem(key);
+                if (existing) return existing;
+                const created = generateAnalyticsId('p');
+                localStorage.setItem(key, created);
+                return created;
+            } catch (e) {
+                return generateAnalyticsId('p');
+            }
+        }
+
+        function ensureAnalyticsIdentity() {
+            if (!Analytics.playerId) Analytics.playerId = getOrCreatePlayerId();
+            if (!Analytics.sessionId) Analytics.sessionId = generateAnalyticsId('s');
+            if (!Analytics.sessionStartedAt) Analytics.sessionStartedAt = Date.now();
+        }
+
+        function getActiveAttempt() {
+            return Analytics.attempt && Analytics.attempt.active ? Analytics.attempt : null;
+        }
+
+        function countRemainingCells() {
+            let remaining = 0;
+            for (let i = 0; i < G.grid.length; i++) {
+                if (G.grid[i] !== 0) remaining++;
+            }
+            return remaining;
+        }
+
+        function startSessionAnalytics() {
+            ensureAnalyticsIdentity();
+            if (Analytics.sessionStarted) return;
+            Analytics.sessionStarted = true;
+            Analytics.sessionEnded = false;
+            trackEvent('session_start', {
+                entry_page: location.pathname,
+                entry_host: location.hostname
+            });
+        }
+
+        function startAttemptAnalytics(level, trigger) {
+            ensureAnalyticsIdentity();
+            Analytics.attempt = {
+                active: true,
+                attemptId: generateAnalyticsId('a'),
+                level: level,
+                startedAt: Date.now(),
+                lastProgressAt: Date.now(),
+                pairsMatched: 0,
+                hintsUsed: 0,
+                addRowsUsed: 0,
+                shufflesUsed: 0,
+                invalidMatches: 0,
+                stuckLogged: false,
+                trigger: trigger || 'unknown'
+            };
+            trackEvent('level_attempt_start', {
+                level: level,
+                start_trigger: trigger || 'unknown'
+            });
+        }
+
+        function maybeTrackStuck(reasonHint) {
+            const attempt = getActiveAttempt();
+            if (!attempt || attempt.stuckLogged) return;
+
+            const now = Date.now();
+            const elapsed = Math.round((now - attempt.startedAt) / 1000);
+            let reason = '';
+
+            if (reasonHint === 'no_moves' && elapsed >= 30) reason = 'no_moves';
+            if (!reason && attempt.hintsUsed >= 3 && elapsed >= 30) reason = 'hint_spike';
+            if (!reason && attempt.addRowsUsed >= 4 && elapsed >= 45) reason = 'add_rows_spike';
+            if (!reason && attempt.invalidMatches >= 5 && elapsed >= 30) reason = 'invalid_match_spike';
+            if (!reason && (now - attempt.lastProgressAt) >= 60000 && elapsed >= 45) reason = 'no_progress_60s';
+            if (!reason && elapsed >= 120 && attempt.pairsMatched <= 3) reason = 'slow_progress';
+            if (!reason) return;
+
+            attempt.stuckLogged = true;
+            trackEvent('stuck_detected', {
+                level: attempt.level,
+                stuck_reason: reason,
+                time_in_level_s: elapsed,
+                hints_used: attempt.hintsUsed,
+                add_rows_used: attempt.addRowsUsed,
+                pairs_matched: attempt.pairsMatched,
+                remaining_cells: countRemainingCells()
+            });
+        }
+
+        function endAttemptAnalytics(outcome, extra = {}) {
+            const attempt = getActiveAttempt();
+            if (!attempt) return;
+
+            const now = Date.now();
+            const elapsed = Math.max(1, Math.round((now - attempt.startedAt) / 1000));
+            const remaining = extra.remaining_cells != null ? extra.remaining_cells : countRemainingCells();
+
+            trackEvent('level_attempt_end', {
+                level: attempt.level,
+                outcome: outcome,
+                time_in_level_s: elapsed,
+                moves: G.moves,
+                pairs_matched: attempt.pairsMatched,
+                hints_used: attempt.hintsUsed,
+                add_rows_used: attempt.addRowsUsed,
+                shuffles_used: attempt.shufflesUsed,
+                invalid_matches: attempt.invalidMatches,
+                remaining_cells: remaining,
+                ...extra
+            });
+
+            attempt.active = false;
+        }
+
+        function endSessionAnalytics(reason) {
+            if (!Analytics.sessionStarted || Analytics.sessionEnded) return;
+            endAttemptAnalytics('session_end', { end_reason: reason || 'page_exit' });
+            const duration = Math.max(1, Math.round((Date.now() - Analytics.sessionStartedAt) / 1000));
+            trackEvent('session_end', {
+                end_reason: reason || 'page_exit',
+                session_duration_s: duration
+            });
+            Analytics.sessionEnded = true;
+        }
 
         /* ============================================================
            4. PAIR LOGIC â€” same number OR sum-to-10
@@ -1076,6 +1220,8 @@
             if (G.addRowsLeft <= 0) return;
             G.addRowsLeft--;
             G.totalRowsAdded++;
+            const attempt = getActiveAttempt();
+            if (attempt) attempt.addRowsUsed++;
             trackEvent('add_row', { level: G.level, add_rows_left: G.addRowsLeft });
 
             const rng = mulberry32(G.seed++);
@@ -1206,6 +1352,8 @@
             updateHUD();
 
             const moveCount = findAllMoves(G.grid).length;
+            if (moveCount === 0) maybeTrackStuck('no_moves');
+            else maybeTrackStuck();
             if (!isRescueRow && unrescuedCorruptions.length === 0) {
                 setMsg(`Smart row added! ${moveCount} moves available.`);
             }
@@ -1571,6 +1719,8 @@
             if (G.shufflesLeft <= 0 || G.animating) return;
             G.shufflesLeft--;
             G.shufflesUsed++;
+            const attempt = getActiveAttempt();
+            if (attempt) attempt.shufflesUsed++;
             G.animating = true;
 
             const rng = mulberry32(G.seed++);
@@ -1685,6 +1835,8 @@
             setTimeout(() => {
                 G.animating = false;
                 const moveCount = findAllMoves(G.grid).length;
+                if (moveCount === 0) maybeTrackStuck('no_moves');
+                else maybeTrackStuck();
                 setMsg((isGoodShuffle ? 'Good shuffle! ' : 'Bad shuffle! ') +
                     moveCount + ' moves available. Shuffles left: ' + G.shufflesLeft);
             }, 500);
@@ -1717,6 +1869,11 @@
                 const i = G.selected, j = index;
                 const valI = G.grid[i];
                 const valJ = G.grid[j];
+                const attempt = getActiveAttempt();
+                if (attempt) {
+                    attempt.pairsMatched++;
+                    attempt.lastProgressAt = Date.now();
+                }
                 trackEvent('pair_matched', { level: G.level, value_1: valI, value_2: valJ });
                 G.animating = true;
                 G.selected = -1;
@@ -1752,14 +1909,18 @@
                     G.animating = false;
                     render();
                     updateHUD();
+                    maybeTrackStuck();
                     checkWin();
                 }, 280);
             } else {
                 // Invalid match â€” shake second cell
+                const attempt = getActiveAttempt();
+                if (attempt) attempt.invalidMatches++;
                 const cells = document.querySelectorAll('.cell');
                 if (cells[index]) cells[index].classList.add('invalid');
                 setMsg('Not a valid match');
                 G.selected = -1;
+                maybeTrackStuck();
                 setTimeout(() => {
                     render();
                     setMsg('');
@@ -1811,6 +1972,10 @@
                     add_rows_used: addRowsUsed,
                     remaining: remaining
                 });
+                endAttemptAnalytics('complete', {
+                    completed_level: G.level,
+                    remaining_cells: remaining
+                });
                 document.getElementById('lc-text').textContent =
                     'Level ' + G.level + ' cleared!' + perfection + ' ' + G.moves + ' moves, ' +
                     corruptionText + addRowsUsed + ' rows added' + shuffleText + '.';
@@ -1824,6 +1989,7 @@
 
             const moves = findAllMoves(G.grid);
             if (moves.length === 0) {
+                maybeTrackStuck('no_moves');
                 setMsg('No moves available \u2014 use + Add Row');
                 return;
             }
@@ -1834,7 +2000,10 @@
             const cells = document.querySelectorAll('.cell');
             if (cells[a]) cells[a].classList.add('hint-glow');
             if (cells[b]) cells[b].classList.add('hint-glow');
+            const attempt = getActiveAttempt();
+            if (attempt) attempt.hintsUsed++;
             trackEvent('hint_used', { level: G.level });
+            maybeTrackStuck();
 
             setMsg('Hint: row ' + (((a / COLS) | 0) + 1) + ' col ' + (a % COLS + 1) +
                 '  &  row ' + (((b / COLS) | 0) + 1) + ' col ' + (b % COLS + 1));
@@ -1918,7 +2087,18 @@
         function setMsg(t) { document.getElementById('msg').textContent = t; }
 
         function trackEvent(name, params = {}) {
+            ensureAnalyticsIdentity();
             const payload = { ...params };
+            payload.player_id = payload.player_id || Analytics.playerId;
+            payload.session_id = payload.session_id || Analytics.sessionId;
+            payload.current_level = payload.current_level || G.level;
+
+            const attempt = getActiveAttempt();
+            if (attempt) {
+                payload.attempt_id = payload.attempt_id || attempt.attemptId;
+                payload.attempt_level = payload.attempt_level || attempt.level;
+            }
+
             if (window.__gaDebugMode) payload.debug_mode = true;
             if (typeof gtag === 'function') gtag('event', name, payload);
             if (typeof fbq === 'function') fbq('trackCustom', name, payload);
@@ -1927,7 +2107,23 @@
         /* ============================================================
            14. LEVEL MANAGEMENT
            ============================================================ */
-        function startLevel(level) {
+        function startLevel(level, startTrigger = 'direct') {
+            startSessionAnalytics();
+            if (getActiveAttempt()) {
+                const outcomeByTrigger = {
+                    restart: 'restart',
+                    jump: 'switch_level',
+                    select: 'switch_level',
+                    next_level: 'advance',
+                    initial: 'switch_level',
+                    direct: 'switch_level'
+                };
+                endAttemptAnalytics(outcomeByTrigger[startTrigger] || 'switch_level', {
+                    to_level: level,
+                    start_trigger: startTrigger
+                });
+            }
+
             G.level = level;
             G.moves = 0;
             G.addRowsLeft = level >= 5 ? (10 + level * 2) : (6 + level);
@@ -1945,11 +2141,12 @@
             const shuffleBtn = document.getElementById('btn-shuffle');
             if (level >= 2) shuffleBtn.style.display = 'inline-block';
             else shuffleBtn.style.display = 'none';
-            trackEvent('level_start', { level: level });
+            trackEvent('level_start', { level: level, start_trigger: startTrigger });
             if (level === 1 && !G.firstLevelTracked) {
                 trackEvent('first_level_reached', { level: 1 });
                 G.firstLevelTracked = true;
             }
+            startAttemptAnalytics(level, startTrigger);
 
             let initialRows = 3;
             if (level >= 4 && level <= 5) initialRows = 4;
@@ -2016,6 +2213,7 @@
                 const layerHint = level >= 4 ? ' | Rescue needs ' + Math.floor(level / 4) + ' decoy rows' : '';
                 const solverText = found ? ' | Solvable seed locked' : ' | Solver fallback';
                 setMsg(moveCount + ' moves | ' + unrescued + ' corruptions' + shuffleText + layerHint + solverText + ' | Plan your moves!');
+                if (moveCount === 0) maybeTrackStuck('no_moves');
             }, 16);
         }
 
@@ -2023,7 +2221,7 @@
             document.getElementById('level-complete').classList.remove('show');
             const toLevel = G.level < 20 ? G.level + 1 : 1;
             trackEvent('next_level', { from_level: G.level, to_level: toLevel });
-            startLevel(toLevel);
+            startLevel(toLevel, 'next_level');
         }
 
         /* ============================================================
@@ -2032,18 +2230,22 @@
         document.getElementById('btn-add').addEventListener('click', addRow);
         document.getElementById('btn-shuffle').addEventListener('click', shuffleBoard);
         document.getElementById('btn-hint').addEventListener('click', showHint);
-        document.getElementById('btn-restart').addEventListener('click', function () { startLevel(G.level); });
+        document.getElementById('btn-restart').addEventListener('click', function () { startLevel(G.level, 'restart'); });
         document.getElementById('btn-next').addEventListener('click', nextLevel);
         document.getElementById('btn-jump').addEventListener('click', function () {
             const v = parseInt(document.getElementById('level-select').value, 10);
-            if (v >= 1 && v <= 20) startLevel(v);
+            if (v >= 1 && v <= 20) startLevel(v, 'jump');
         });
         document.getElementById('level-select').addEventListener('change', function () {
             const v = parseInt(this.value, 10);
-            if (v >= 1 && v <= 20) startLevel(v);
+            if (v >= 1 && v <= 20) startLevel(v, 'select');
         });
 
-        startLevel(1);
+        window.addEventListener('pagehide', function () { endSessionAnalytics('pagehide'); });
+        window.addEventListener('beforeunload', function () { endSessionAnalytics('beforeunload'); });
+
+        startSessionAnalytics();
+        startLevel(1, 'initial');
     </script>
 </body>
 
